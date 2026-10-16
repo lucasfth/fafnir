@@ -5,9 +5,9 @@ on:
       - '**/*.md'
       - 'docs/assets/**'
   pull_request:
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/assets/**'
+    # No paths-ignore here on purpose: main branch protection requires the
+    # Verify test runs for every merge, so docs/asset-only PRs must start CI.
+    # (Direct branch pushes of docs-only changes still skip below.)
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
