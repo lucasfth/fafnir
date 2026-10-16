@@ -11,5 +11,6 @@
 - Add audit regression coverage, detailed model-review outcomes and gRPC v1.83.2 advisory remediation.
 - Apply the standard README presentation and add approved rounded-interlock/keyhole SVG marks in Catppuccin Latte and Mocha, selected by light/dark image media.
 - License Fafnir's original work under Apache-2.0, with copyright attribution and a README license badge.
+- Update govulncheck to v1.9.0 for Go 1.27 parser compatibility; CI selects the latest Go 1.27 patch and completes both platform jobs independently.
 
 No release has been published. Verification results are recorded only after execution.
