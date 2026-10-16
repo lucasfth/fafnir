@@ -22,6 +22,15 @@ func TestChildEnvironmentAndArgumentBoundaries(t *testing.T) {
 	}
 }
 
+func TestInheritedGitControlsRemainAvailable(t *testing.T) {
+	t.Setenv("GIT_CONFIG_COUNT", "synthetic-inherited-control")
+	var out bytes.Buffer
+	code, err := Run(context.Background(), t.TempDir(), []string{"/bin/sh", "-c", `printf '%s' "$GIT_CONFIG_COUNT"`}, nil, nil, &out, &out)
+	if err != nil || code != 0 || out.String() != "synthetic-inherited-control" {
+		t.Fatalf("inherited environment changed: exit=%d err=%v output=%q", code, err, out.String())
+	}
+}
+
 func TestRejectsInjectedExecutionControls(t *testing.T) {
 	for _, name := range []string{"GOFLAGS", "GOWORK", "GOENV", "CC", "CXX", "CGO_CFLAGS", "CFLAGS", "LDFLAGS", "PATH", "LD_PRELOAD", "DYLD_INSERT_LIBRARIES", "NODE_OPTIONS", "PYTHONPATH", "BASH_ENV", "FAFNIR_PRIVATE_KEY", "BW_SESSION", "SOPS_AGE_KEY_CMD", "GIT_CONFIG_COUNT", "INVALID-NAME"} {
 		t.Run(name, func(t *testing.T) {
