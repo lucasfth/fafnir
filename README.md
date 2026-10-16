@@ -176,6 +176,8 @@ make test
 make check
 ```
 
+CI verifies Linux and macOS with race tests, vet, a build, and platform-specific vulnerability scans. Go module/build caches are reused; tests still execute on every run (`-count=1`). A consistent `-trimpath` setting avoids separate path-sensitive build variants. Markdown and logo-only changes skip this workflow, and newer commits cancel superseded runs on the same branch or pull request. You can run verification manually from GitHub Actions when needed.
+
 Native keychain integration uses only disposable synthetic test identities when explicitly enabled:
 
 ```sh

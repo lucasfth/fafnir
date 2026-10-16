@@ -12,5 +12,6 @@
 - Apply the standard README presentation and add approved rounded-interlock/keyhole SVG marks in Catppuccin Latte and Mocha, selected by light/dark image media.
 - License Fafnir's original work under Apache-2.0, with copyright attribution and a README license badge.
 - Update govulncheck to v1.9.0 for Go 1.27 parser compatibility; CI selects the latest Go 1.27 patch and completes both platform jobs independently.
+- Reuse consistent trimpath build artifacts in CI, execute uncached race tests, skip Markdown/logo-only changes, and cancel superseded verification runs while retaining both platform vulnerability scans.
 
 No release has been published. Verification results are recorded only after execution.
