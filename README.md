@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/fafnir-logo-mocha.svg">
-    <img src="docs/assets/fafnir-logo-latte.svg" width="96" alt="Fafnir rounded interlock with a keyhole">
+    <img src="docs/assets/fafnir-logo-latte.svg" width="96" alt="Fafnir rounded interlock with a keyhole and an eye">
   </picture>
 </p>
 <h1 align="center">Fafnir</h1>
