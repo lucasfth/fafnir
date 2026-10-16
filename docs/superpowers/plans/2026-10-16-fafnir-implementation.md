@@ -1,0 +1,37 @@
+# Fafnir Implementation Plan
+
+> **For agentic workers:** Use subagent-driven development with bounded independent packages. No commits, pushes, release publication, real credentials or live system configuration changes.
+
+**Goal:** Implement the approved Go CLI end to end with synthetic-secret verification and explicit security limitations.
+
+**Architecture:** Use SOPS v3.13.3 tree/cipher/dotenv APIs and age v1.3.2 restricted to explicit native X25519 identities. Never invoke generic SOPS keyservice/provider dispatch: validate one age-only group, inject only provided identities or directly unwrap the matching native age master key, authenticate the entire tree and MAC before returning plaintext. Rooted filesystem operations and locally pinned policies protect repository operations. Charm forms provide an optional interactive frontend to the same command handlers.
+
+**Tech Stack:** Go 1.27, SOPS, age, Charm Huh/Lip Gloss, native keychain bindings, Go tests/fuzzing/race detector. No JS/TS.
+
+## Workspace
+
+The repository is unborn, with no HEAD to base a worktree on. Preserve the existing untracked specification and use the isolated orphan branch `feat/initial-implementation`; creating a worktree would require an unapproved initial commit. No baseline code/tests exist.
+
+## Shared package interfaces
+
+- `internal/crypt`: `GenerateIdentity() (string,error)`, `Public(identity string) (string,error)`, `ValidateRecipients([]string) error`, `Encrypt(plain []byte, recipients []string) ([]byte,error)`, `Decrypt(ciphertext []byte, identity string, recipients []string) ([]byte,error)`, `Inspect(ciphertext []byte, recipients []string) error`, `Rekey(ciphertext []byte, identity string, oldRecipients,newRecipients []string) ([]byte,error)`, `ParseEnv(plain []byte) (map[string]string,error)`. Errors must not contain plaintext, keys, raw provider errors or attacker-controlled terminal escapes. `MaxFileSize = 1 << 20` for plaintext and `MaxCiphertextSize = 8 << 20`. Native X25519 age recipients only. `Inspect` is structural/policy only, not authenticated proof. `Rekey` may fully re-encrypt with a fresh DEK; necessary on recipient removal, safe on addition. Plaintext dotenv must preserve semantics and never execute interpolation; duplicates/malformed input rejected, unsupported constructs explicitly rejected rather than silently changed.
+- `internal/custody`: `Store` interface `Get() (string,error)`, `Set(string) error`, `Delete() error`; `NewKeychain(account string) Store`, `NewFile(path string) Store`. Validate native identity via crypt. No secrets in subprocess argv. Files owner-only, no symlinks, bounded reads. Tests opt into actual disposable keychain items only explicitly.
+- `internal/project`: `Pair{Plain string json:"plain", Encrypted string json:"encrypted", Recipients []string json:"recipients"}`; `Config{Version int json:"version", Pairs []Pair json:"pairs"}`; `Open(dir,stateDir string) (*Project,error)` finds Git root; `(*Project).Config() (Config,error)`; `Init(Config) error`, `Approve() error`, `Seal(plain,identity string,replace bool) error`, `Restore(plain,identity string,replace bool) error`, `Decrypt(plain,identity string) ([]byte,error)`, `Grant(plain,identity string,recipients []string) error`, `Check(staged bool,identity string) ([]string,error)`, `InstallHook(executable string) error`. Project policy `.fafnir.json`; trusted policy stored in stateDir outside checkout keyed to canonical Git root, with separate approvals from repository mutation. `Init` explicit local approval, `Approve` explicit refresh; all operations fail when relevant policy changed. `Grant` updates the selected artifact and policy safely under a project lock; trusts only on successful completion, interrupted states fail closed. Check staged blobs, ignores, forced plaintext staging and structural ciphertext validation, crypto/sync when keys available. Keep previous files on failure; no partial authenticated plaintext writes. Reject Git path injection, traversal, symlink destinations and unsafe parents. No shell hooks from repository. Hook installation opt-in and refuses existing hooks instead of overwriting.
+- `internal/runner`: `Run(ctx context.Context, dir string, args []string, values map[string]string, stdin io.Reader, stdout,stderr io.Writer) (int,error)` executes argument vector, validates secret names, strips decryption/provider credentials, refuses dangerous injected controls, configured values override inherited app values, preserves child statuses/signals. No shell-string construction.
+- CLI `cmd/fafnir`: parent-owned. Explicit commands plus interactive menu on TTY. Global `--dir`, `--state-dir`, `--key-file`, `--account` and masked current-invocation identity input. No identity argument/env accepting private literal. `key create/import/public/export/delete`, `init`, `trust`, `seal`, `open`, `run`, `check`, `grant/revoke`, `hook install`. Export requires explicit file or TTY reveal confirmation. JSON config selection per pair, public sharing labels exact. UI stderr and ANSI16 default; NO_COLOR/accessibility honored. Non-TTY no prompts.
+
+## Execution slices
+
+1. Crypto/custody: tests first for two-recipient enrollment and ungranted scope, tampering/deletion/metadata backend attacks, duplicates, malformed and multiline/quote/empty/Unicode handling, identity errors, permissions. Verify API source before coding. Native keychain must not leak secrets in argv. Own only crypt/custody packages and their tests. Parent owns go.mod/go.sum.
+2. Project: tests for tracked plaintext, local trust tampering, safe writes/overwrite conflicts/symlinks, staged-vs-working content, grant/revoke, hook behavior and policy isolation. Own only project package/tests. Use the shared crypt contract without editing crypto files.
+3. Parent: establish pinned modules; implement runner/tests and CLI/interactive forms, key flows, user docs and synthetic actual CLI smoke. Keep explicit commands usable from existing repos without application SDKs.
+
+Delegates skip build/lint/tests/formatters mid-flight per coordination policy, but write tests first and identify red/green claims as unexercised. Parent performs one consolidated initial red check before implementation where feasible, then final integrated checks; report any TDD limitation honestly.
+
+## Verification
+
+Run full tests with race detector, go vet, govulncheck, bounded fuzz smoke and build. Exercise the built CLI against disposable Git repositories and isolated state with actual synthetic age keys: import/create, init, seal, check, restore, overwrite refusal, tamper refusal, run environment/exit status, second coworker before/after grant and removed coworker after revoke, independent environment denial, staged plaintext bypass, native keychain disposable round-trip when available. Use a pseudoterminal to exercise navigation/cancel/masked import with synthetic values and inspect ANSI16-only/plain output. Never open disruptive GUI terminals. Review specification coverage separately from security quality; fix valid findings then rerun affected verification. No claim of independent external audit or production readiness.
+
+## Research record
+
+Record primary-source links and concrete design consequences in SECURITY.md, including RFC 5116 AEAD all-or-nothing decryption, NIST GCM nonce requirements, age format/provider restrictions, and Saltzer/Schroeder least privilege/fail-safe defaults. Resolve age advisory applicability before final dependency approval. Research informs design, does not certify implementation.

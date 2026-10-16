@@ -1,0 +1,13 @@
+# Plaintext secrets must never be committed, including forced staging (fafnir check).
+.env
+.env.*
+!*.fafnir
+!*.example
+*.key
+*.pem
+.fafnir-local/
+/bin/
+/dist/
+*.test
+coverage.out
+.DS_Store
