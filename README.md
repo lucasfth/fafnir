@@ -43,24 +43,45 @@ Named after the dragon who guards a treasure hoard in Norse legend: Fafnir (**Fa
 
 ## Getting started
 
-Build from this checkout using Go 1.27 or newer:
+### Install on a new laptop
+
+Prerequisites: Git and [Go 1.27+](https://go.dev/doc/install). On macOS, install Apple's Command Line Tools if missing (`xcode-select --install`); native keychain support needs CGO and the Apple SDK. On Linux, native storage needs a running Secret Service; headless systems can use an explicit protected key file instead.
+
+There are currently no published binary releases. Clone and review the source, then build and install into your user-owned binary directory:
 
 ```sh
-go build -trimpath -o bin/fafnir ./cmd/fafnir
-./bin/fafnir help
+git clone https://github.com/lucasfth/fafnir.git
+cd fafnir
+(
+  set -eu
+  if [ "$(uname -s)" = Darwin ]; then
+    if ! xcrun --find clang >/dev/null 2>&1 || ! xcrun --show-sdk-path >/dev/null 2>&1; then
+      echo "Install Apple Command Line Tools with xcode-select --install, then retry." >&2
+      exit 1
+    fi
+    CGO_ENABLED=1 SDKROOT="$(xcrun --show-sdk-path)" CC="$(xcrun --find clang)" go build -trimpath -o bin/fafnir ./cmd/fafnir
+  else
+    go build -trimpath -o bin/fafnir ./cmd/fafnir
+  fi
+  mkdir -p "$HOME/.local/bin"
+  install -m 755 bin/fafnir "$HOME/.local/bin/fafnir"
+) && export PATH="$HOME/.local/bin:$PATH" && fafnir help
 ```
 
-macOS native keychain builds require CGO and the Apple SDK (Command Line Tools). Linux native storage requires an available Secret Service; headless systems can use an explicit private key file. No-CGO macOS builds report native storage unavailable rather than silently storing plaintext elsewhere.
+Keep the `export PATH="$HOME/.local/bin:$PATH"` line in your shell startup file (`~/.zshrc` for zsh or `~/.bashrc` for bash) if that directory is not already on PATH. The export above applies to the current terminal only. You can leave the Fafnir checkout and return to your application repository after installation.
 
-If a Nix compiler on PATH cannot locate Apple framework headers, select the installed Apple toolchain explicitly for each build/check command:
+The macOS command explicitly selects Apple's compiler to avoid a Nix compiler on PATH that cannot locate Apple frameworks. It does not substitute a key-file backend. No-CGO macOS builds report native storage unavailable rather than silently storing plaintext elsewhere.
+
+### Create your identity once
 
 ```sh
-SDKROOT="$(xcrun --show-sdk-path)" CC="$(xcrun --find clang)" go build -trimpath -o bin/fafnir ./cmd/fafnir
+fafnir key create  # creates and stores your private identity locally
+fafnir key public  # prints your age1… public recipient; safe to send to your team
 ```
 
-This fixes compiler selection; it does not disable CGO or substitute a key-file backend.
+Default storage is the macOS Keychain or Linux Secret Service. Reuse the identity across repositories; each file still needs a grant. Never send the private key to a coworker. Keep a protected [recovery copy](#manual-backup-and-recovery). If an identity already exists, skip creation instead of replacing it.
 
-Put the binary on your own PATH when ready. Running `fafnir` in an interactive terminal opens guided actions. It inherits standard terminal colors and supports `--accessible` and `NO_COLOR`; no separate palette configuration.
+Running `fafnir` in an interactive terminal opens guided actions. It inherits standard terminal colors and supports `--accessible` and `NO_COLOR`; no separate palette configuration.
 
 ### Essential commands
 
@@ -73,7 +94,11 @@ fafnir check --decrypt
 fafnir run -- npm run dev
 ```
 
-Create or edit ignored `.env` with your existing editor, then seal deliberately. `seal` and `open` refuse differing destinations unless `--replace` is explicit. Nothing automatically stages, commits, pushes or merges.
+To populate the first file, create or copy an ignored `.env` from your project's example, run `chmod 600 .env`, and **edit it with your editor to replace placeholders with the actual configuration** before sealing. Values must match the intended deployment; Fafnir does not discover or fetch them. `init` uses your cached public recipient unless you pass explicit `--recipient` options, and asks you to confirm the scope.
+
+`seal` writes `.env.fafnir`; `init` creates `.fafnir.json` and ignore rules. Review `git status --short` and the policy/ciphertext changes, then include `.fafnir.json`, `.env.fafnir` and the relevant ignore rules in your normal commit/PR/push workflow. **Fafnir never stages, commits, pushes or merges.** Publishing after sealing is an ordinary Git operation; committing without sealing does not encrypt anything. Never add plaintext or private identities.
+
+`seal` and `open` refuse differing destinations unless `--replace` is explicit.
 
 Restore normalizes quotes/whitespace while preserving supported environment values; synchronization compares parsed values, not byte-identical formatting. The restricted SOPS profile encrypts the quoted representation of every value, including `""` for empty strings. Stock SOPS can decrypt this dotenv profile, but arbitrary stock SOPS documents are not accepted. Comments are encrypted, but deletion or reordering of intact comments is not detected by SOPS' document MAC. No interpolation or command substitution is evaluated. Duplicate/reserved keys, unsupported control/escape syntax and glob/control/trailing-space filenames are refused rather than guessed.
 
@@ -107,18 +132,35 @@ Replace the example with an actual verified public recipient. Each file pair has
 
 #### Manual backup and recovery
 
-You can save your private identity yourself in Bitwarden, another password manager or offline storage. Fafnir does not need vault credentials or a Bitwarden CLI.
+Back up your identity to your own password manager before relying on encrypted configuration. Fafnir does not need vault credentials or a password-manager CLI.
+
+1. Export outside every repository:
+
+   ```sh
+   fafnir key export --output "$HOME/fafnir-recovery.key"
+   ```
+
+2. Save the file or its complete contents in a secure password-manager entry. Verify the saved entry and retain its public recipient (`fafnir key public`) for comparison during recovery.
+3. Delete the temporary plaintext export after verification:
+
+   ```sh
+   rm "$HOME/fafnir-recovery.key"
+   ```
+
+Time Machine and other backups may capture the export; deleting the file does not erase those copies. Use a location appropriate for your backup policy. Never commit or send the private identity to coworkers.
+
+On a replacement machine, install Fafnir and restore instead of creating a new identity:
 
 ```sh
-fafnir key export --output /path/to/private-directory/fafnir.key
-fafnir key import
+fafnir key import  # masked paste from your password manager
+fafnir key public  # compare with the original public recipient
 ```
 
-`key import` accepts a masked paste and saves into the explicitly selected native keychain or key file. `--paste-key` supplies a masked identity for the current invocation without persisting it. `key export --reveal` is an explicit interactive terminal reveal and requires confirmation; recordings and scrollback may retain it. Clipboard history and sync may retain copied private keys. Fafnir never reads, writes or clears the clipboard automatically. Copying an identity to your own device is not rotation. Keep an independent recovery copy before deleting an identity:
+Pull your previously sealed and published repository configuration, review the policy and run `fafnir trust`. Restoring the same identity restores decryption access to files still encrypted to that recipient; it does not grant access to additional scopes or recover unpublished files.
 
-```sh
-fafnir key delete
-```
+`key public` reads the public-recipient cache, not the private key; it alone is not proof that private-key storage or recovery works. Verify recovery by decrypting known ciphertext, for example `fafnir check --decrypt` when you have access to every configured scope.
+
+`key import` saves into the selected native keychain or explicit key file. `--paste-key` supplies a masked identity for one invocation without persisting it. As a last resort, `key export --reveal` reveals the private key in the terminal after confirmation; recordings and scrollback may retain it. Clipboard history and sync may retain copied keys. Fafnir never reads, writes or clears the clipboard automatically. Copying an identity to your own device is not rotation. Do not delete an identity until recovery is verified.
 
 #### Git safeguards
 
@@ -150,7 +192,7 @@ The UI deliberately distinguishes:
 
 1. Coworker creates their own identity and runs `fafnir key public`.
 2. Verify the public recipient and owner through a trusted channel.
-3. An authorized maintainer grants exactly the selected scope:
+3. An existing recipient grants exactly the selected scope, following the team's maintainer/PR convention:
 
    ```sh
    fafnir grant --file .env --recipient age1COWORKER_PUBLIC_RECIPIENT
@@ -160,6 +202,8 @@ The UI deliberately distinguishes:
 5. Coworker pulls, reviews recipients and explicitly approves the policy with `fafnir trust`, then uses `fafnir open` or `fafnir run -- …`.
 
 Changing policy alone is insufficient; the encrypted artifact must be updated. Private keys, raw data keys and plaintext `.env` never need to be sent to grant access.
+
+**No separate grant-admin role exists.** Any recipient holding a private identity that decrypts a file can add or remove recipients for that file, or share its plaintext. A "maintainer-only" restriction is a team convention enforced by repository permissions and PR review of the policy **and** ciphertext, not by Fafnir. Development access does not grant access to a separately encrypted production file.
 
 ```sh
 fafnir revoke --file .env --recipient age1COWORKER_PUBLIC_RECIPIENT
