@@ -1,7 +1,10 @@
 .PHONY: build test check cli-workflow fuzz security clean
 
+VERSION ?= $(shell cat VERSION)
+LDFLAGS = -X github.com/lucasfth/fafnir/internal/cli.Version=$(VERSION)
+
 build:
-	go build -trimpath -o bin/fafnir ./cmd/fafnir
+	go build -trimpath -ldflags '$(LDFLAGS)' -o bin/fafnir ./cmd/fafnir
 
 test:
 	go test -race ./...

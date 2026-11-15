@@ -43,11 +43,26 @@ Named after the dragon who guards a treasure hoard in Norse legend: Fafnir (**Fa
 
 ## Getting started
 
-### Install on a new laptop
+### Install
 
-Prerequisites: Git and [Go 1.27+](https://go.dev/doc/install). On macOS, install Apple's Command Line Tools if missing (`xcode-select --install`); native keychain support needs CGO and the Apple SDK. On Linux, native storage needs a running Secret Service; headless systems can use an explicit protected key file instead.
+Fafnir is a beta (`2026.0.0-beta.1`, versioned `YEAR.MINOR.PATCH`). There are no prebuilt binaries: Nix (and Homebrew, once published) build from source. Both builds enable CGO, which macOS keychain support needs.
 
-There are currently no published binary releases. Clone and review the source, then build and install into your user-owned binary directory:
+**Nix** (flakes enabled):
+
+```sh
+nix profile install github:lucasfth/fafnir
+# or try it without installing:
+nix run github:lucasfth/fafnir -- help
+```
+
+**Homebrew** is planned (`brew install lucasfth/tap/fafnir`) but not available until the first tag and tap are published; a draft, unverified formula is in [`packaging/homebrew`](packaging/homebrew/fafnir.rb).
+
+The flake pins `nixpkgs-unstable` because Fafnir needs Go 1.27, which is newer than some weekly channels. On Linux, native storage needs a running Secret Service; headless systems can use an explicit protected key file instead.
+
+<details>
+<summary>Build from source</summary>
+
+Prerequisites: Git and [Go 1.27+](https://go.dev/doc/install). On macOS, install Apple's Command Line Tools if missing (`xcode-select --install`); native keychain support needs CGO and the Apple SDK.
 
 ```sh
 git clone https://github.com/lucasfth/fafnir.git
@@ -59,9 +74,9 @@ cd fafnir
       echo "Install Apple Command Line Tools with xcode-select --install, then retry." >&2
       exit 1
     fi
-    CGO_ENABLED=1 SDKROOT="$(xcrun --show-sdk-path)" CC="$(xcrun --find clang)" go build -trimpath -o bin/fafnir ./cmd/fafnir
+    CGO_ENABLED=1 SDKROOT="$(xcrun --show-sdk-path)" CC="$(xcrun --find clang)" make build
   else
-    go build -trimpath -o bin/fafnir ./cmd/fafnir
+    make build
   fi
   mkdir -p "$HOME/.local/bin"
   install -m 755 bin/fafnir "$HOME/.local/bin/fafnir"
@@ -71,6 +86,9 @@ cd fafnir
 Keep the `export PATH="$HOME/.local/bin:$PATH"` line in your shell startup file (`~/.zshrc` for zsh or `~/.bashrc` for bash) if that directory is not already on PATH. The export above applies to the current terminal only. You can leave the Fafnir checkout and return to your application repository after installation.
 
 The macOS command explicitly selects Apple's compiler to avoid a Nix compiler on PATH that cannot locate Apple frameworks. It does not substitute a key-file backend. No-CGO macOS builds report native storage unavailable rather than silently storing plaintext elsewhere.
+
+</details>
+
 
 ### Create your identity once
 

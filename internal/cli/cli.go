@@ -24,7 +24,9 @@ import (
 	"golang.org/x/term"
 )
 
-const Version = "0.1.0-dev"
+// Version is set at build time with -ldflags "-X github.com/lucasfth/fafnir/internal/cli.Version=...".
+var Version = "dev"
+
 const help = `Fafnir — repository secrets, established encryption.
 
 Usage: fafnir [global options] command [command options]
