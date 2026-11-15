@@ -45,7 +45,13 @@ Named after the dragon who guards a treasure hoard in Norse legend: Fafnir (**Fa
 
 ### Install
 
-Fafnir is a beta (`2026.0.0-beta.1`, versioned `YEAR.MINOR.PATCH`). There are no prebuilt binaries: Nix (and Homebrew, once published) build from source. Both builds enable CGO, which macOS keychain support needs.
+Fafnir is a beta (`2026.0.0-beta.1`, versioned `YEAR.MINOR.PATCH`). There are no prebuilt binaries: Homebrew and Nix both build from source. Both builds enable CGO, which macOS keychain support needs.
+
+**Homebrew** (builds from source; needs Go, which Homebrew installs as a build dependency):
+
+```sh
+brew install lucasfth/tap/fafnir
+```
 
 **Nix** (flakes enabled):
 
@@ -54,8 +60,6 @@ nix profile install github:lucasfth/fafnir
 # or try it without installing:
 nix run github:lucasfth/fafnir -- help
 ```
-
-**Homebrew** is planned (`brew install lucasfth/tap/fafnir`) but not available until the first tag and tap are published; a draft, unverified formula is in [`packaging/homebrew`](packaging/homebrew/fafnir.rb).
 
 The flake pins `nixpkgs-unstable` because Fafnir needs Go 1.27, which is newer than some weekly channels. On Linux, native storage needs a running Secret Service; headless systems can use an explicit protected key file instead.
 

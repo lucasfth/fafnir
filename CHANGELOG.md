@@ -13,6 +13,6 @@
 - License Fafnir's original work under Apache-2.0, with copyright attribution and a README license badge.
 - Update govulncheck to v1.9.0 for Go 1.27 parser compatibility; CI selects the latest Go 1.27 patch and completes both platform jobs independently.
 - Reuse consistent trimpath build artifacts in CI, execute uncached race tests, skip Markdown/logo-only changes, and cancel superseded verification runs while retaining both platform vulnerability scans.
-- Add a draft, unverified Homebrew formula and a Nix flake (both build from source with CGO), a single-source `VERSION` file injected via ldflags, and a CI `nix build` job. Versions follow `YEAR.MINOR.PATCH` with a `-beta.N` suffix; the first is `2026.0.0-beta.1`.
+- Add a Homebrew formula in `lucasfth/homebrew-tap` and a Nix flake (both build from source with CGO), a single-source `VERSION` file injected via ldflags, and a CI `nix build` job. Versions follow `YEAR.MINOR.PATCH` with a `-beta.N` suffix; the first is `2026.0.0-beta.1`.
 
-No release has been published. Verification results are recorded only after execution.
+Only a prerelease, `v2026.0.0-beta.1`, has been published. It is experimental, ships no binaries and has not passed an independent review. Verification results are recorded only after execution.
