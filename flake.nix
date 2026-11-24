@@ -23,7 +23,7 @@
           inherit version;
           src = self;
           subPackages = [ "cmd/fafnir" ];
-          vendorHash = "sha256-2BtB2fwjI4DKMg7/YG97cQQrXEOWCLu8JwPhEqubcK4=";
+          vendorHash = "sha256-h1LH62DeG523jkuJ22BEAk64kN/P7HMHsSX5nszynV8=";
           # macOS keychain support needs CGO; buildGoModule enables it by default.
           env.CGO_ENABLED = "1";
           ldflags = [
