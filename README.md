@@ -45,7 +45,7 @@ Named after the dragon who guards a treasure hoard in Norse legend: Fafnir (**Fa
 
 ### Install
 
-Fafnir is a beta (`2026.0.0-beta.1`, versioned `YEAR.MINOR.PATCH`). There are no prebuilt binaries: Homebrew and Nix both build from source. Both builds enable CGO, which macOS keychain support needs.
+Fafnir is in beta and uses `YEAR.MINOR.PATCH` versions with a prerelease suffix. There are no prebuilt binaries: Homebrew and Nix both build from source. Both builds enable CGO, which macOS keychain support needs.
 
 **Homebrew** (builds from source; needs Go, which Homebrew installs as a build dependency):
 
